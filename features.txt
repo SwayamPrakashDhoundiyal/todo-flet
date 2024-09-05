@@ -1,0 +1,11 @@
+features:
+    Add timed task that can be marked completed only when an amount of time has passed.
+    Timed task are focused tasks, they need to be started and paused and when they are active no other task can be marked as completed.
+    Timed task should show the time taken to actually complete the task.
+    Add date to task, when date is crossed the task is marked as delayed.
+
+Timed task (properties):
+    1. Assigned time 
+    2. Time taken 
+    3. Break taken 
+    4. Total time to complete the task
