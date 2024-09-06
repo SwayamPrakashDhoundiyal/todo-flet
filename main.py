@@ -13,29 +13,38 @@ class system_calls:
     def __init__(self,image_path,Page:ft.Page):
         self.image_path = PIL.Image.open(self.resource_path(image_path))
         self.page = Page
+        self.running = False
         self.min_tray = pystray.Icon(name="To-do (flet app)",icon=self.image_path,menu=pystray.Menu(
             pystray.MenuItem("Open",self.show_window),
             pystray.MenuItem("Exit",self.exit_window)
         ))
     
     def hide_window(self):
+        self.running = True
         self.page.window.always_on_bottom = False
         self.page.window.minimized = True
         self.page.window.maximizable = False
         self.page.update()
 
     def show_window(self):
+        self.running = False
         self.page.window.skip_task_bar = False
         self.page.window.maximizable = False
         self.page.window.minimized = False
         self.page.window.skip_task_bar = True
         self.page.window.always_on_bottom = True
-        self.page.update()
         self.min_tray.stop()
+        self.page.update()
 
     def exit_window(self):
         self.min_tray.stop()
         self.page.window.destroy()
+    
+    def ini_tray(self):
+        return pystray.Icon(name="To-do (flet app)",icon=self.image_path,menu=pystray.Menu(
+            pystray.MenuItem("Open",self.show_window),
+            pystray.MenuItem("Exit",self.exit_window)
+        ))
     
     def resource_path(self,relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller onefile """
@@ -362,11 +371,11 @@ class Todo(ft.Column):
 
 def main(page: ft.Page):
     app = Todo(page)
-
+    sys = system_calls('assets/icon2.png',page)
     def minimise_window(e):
-        if e.data == 'close':
-            sys = system_calls('assets/icon2.png',page)
+        if (e.data == 'close' or e.data == 'minimize') and sys.running == False:
             sys.hide_window()
+            sys.min_tray = sys.ini_tray()
             sys.min_tray.run()
     page.add(app)
     page.title = "To-do"
