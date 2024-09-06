@@ -1,8 +1,51 @@
 import flet as ft
+import pystray
+import PIL.Image
+import PIL
 import random
 import assets.backend as backend
 import threading
 import time
+import sys as system
+import os
+
+class system_calls:
+    def __init__(self,image_path,Page:ft.Page):
+        self.image_path = PIL.Image.open(self.resource_path(image_path))
+        self.page = Page
+        self.min_tray = pystray.Icon(name="To-do (flet app)",icon=self.image_path,menu=pystray.Menu(
+            pystray.MenuItem("Open",self.show_window),
+            pystray.MenuItem("Exit",self.exit_window)
+        ))
+    
+    def hide_window(self):
+        self.page.window.always_on_bottom = False
+        self.page.window.minimized = True
+        self.page.window.maximizable = False
+        self.page.update()
+
+    def show_window(self):
+        self.page.window.skip_task_bar = False
+        self.page.window.maximizable = False
+        self.page.window.minimized = False
+        self.page.window.skip_task_bar = True
+        self.page.window.always_on_bottom = True
+        self.page.update()
+        self.min_tray.stop()
+
+    def exit_window(self):
+        self.min_tray.stop()
+        self.page.window.destroy()
+    
+    def resource_path(self,relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller onefile """
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = system._MEIPASS
+        except AttributeError:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
 class theme_colors:
     def __init__(self):
@@ -20,6 +63,7 @@ class Task(ft.Column):
     def __init__(self,taskname,task_changed,taskdelete):
         super().__init__()
         self.colors = theme_colors()
+        self.data_base = backend.DataClass()
         self.taskname = taskname
         self.task_changed = task_changed
         self.taskdelete = taskdelete
@@ -109,7 +153,7 @@ class Task(ft.Column):
         hr = int(hr)
         min = int(min)
         sec = int(sec)
-        self.timer = backend.set_timer_task(hr,min,sec)
+        self.timer = self.data_base.set_timer_task(hr,min,sec)
         self.timePassed = self.timer
         self.paused = True
         self.timerDone = False
@@ -189,6 +233,7 @@ class Todo(ft.Column):
     def __init__(self,page):
         super().__init__()
         self.colors = theme_colors()
+        self.data_base = backend.DataClass()
         self.taskfield = ft.TextField(hint_text=self.rand_hint_str(),
                              expand=True,
                              border_color=self.colors.primary,
@@ -255,7 +300,7 @@ class Todo(ft.Column):
             if not task.completed:
                 count = count + 1
         
-        backend.add_task(dicts)
+        self.data_base.add_task(dicts)
         self.items_left.value = f"{count} item(s) left"
 
     def add_task(self,e):
@@ -269,7 +314,7 @@ class Todo(ft.Column):
         lists = []
         lists.append(task.taskname)
         self.task_view.controls.remove(task)
-        backend.remove_task(lists)
+        self.data_base.remove_task(lists)
         self.update()
 
     def task_changed(self):
@@ -288,7 +333,7 @@ class Todo(ft.Column):
                 self.task_view.controls.remove(task)
                 lists.append(task.taskname)
         self.update()
-        backend.remove_task(lists)
+        self.data_base.remove_task(lists)
 
     def rand_hint_str(self):
         arr_choices = ["What's needs to be done? (˶ᵔ ᵕ ᵔ˶)","Got anything new to do ? ᐠ( ᐛ )ᐟ","Let's note the task you want to be done ( • ̀ω•́ )✧"]
@@ -296,7 +341,7 @@ class Todo(ft.Column):
         return string
     def initialise_list(self):
         
-        list_task = backend.load_task()
+        list_task = self.data_base.load_task()
         if list_task is not None:
             for item in list_task:
                 task = Task(item,self.task_changed,self.task_delete)
@@ -315,17 +360,27 @@ class Todo(ft.Column):
                 self.task_view.controls.append(task)
         
 
-def main(page: ft.Page):    
+def main(page: ft.Page):
     app = Todo(page)
 
+    def minimise_window(e):
+        if e.data == 'close':
+            sys = system_calls('assets/icon2.png',page)
+            sys.hide_window()
+            sys.min_tray.run()
     page.add(app)
+    page.title = "To-do"
     page.window.width = 400
     page.window.height = 500
     page.window.resizable = False
     page.bgcolor = app.colors.background
     page.theme = ft.Theme(scrollbar_theme=ft.ScrollbarTheme(thickness=3))
-    page.window.always_on_bottom = True
     app.initialise_list()
+    page.window.skip_task_bar = True
+    page.window.always_on_bottom = True
+    page.window.prevent_close = True
+    page.window.maximizable = False
+    page.window.on_event = minimise_window
     page.update()
 
 ft.app(main)
