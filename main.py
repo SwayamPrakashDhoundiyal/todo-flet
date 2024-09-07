@@ -102,7 +102,7 @@ class Task(ft.Column):
                         tooltip="Edit the task",
                         icon_color=self.colors.primary,
                         on_click=self.handle_start_pause,)
-        self.display_task = ft.Checkbox(label=self.taskname,value=False,on_change=self.task_changes)
+        self.display_task = ft.Checkbox(label=self.check_name(),value=False,on_change=self.task_changes)
         self.timepick = ft.TimePicker(confirm_text="Set",
             error_invalid_text="Time out of range",
             help_text="Set timer",
@@ -157,6 +157,12 @@ class Task(ft.Column):
 
         self.controls = [self.display_view,self.edit_view,self.progress]
     
+    def check_name(self):
+        if len(self.taskname) > 31 :
+            newtask,garValue = self.taskname.split(self.taskname[29:])
+            self.tooltip = self.taskname
+            return newtask+"..."
+
     def handle_change(self,e):
         hr,min,sec= str(self.timepick.value).split(":")
         hr = int(hr)
